@@ -20,7 +20,12 @@ from struct import pack, unpack
 import sys
 
 from . import cast_channel_pb2
-from .dial import CAST_TYPE_CHROMECAST, CAST_TYPE_AUDIO, CAST_TYPE_GROUP
+from .dial import (
+    CAST_TYPE_CHROMECAST,
+    CAST_TYPE_AUDIO,
+    CAST_TYPE_GROUP,
+    NetworkAddress,
+)
 from .controllers import BaseController
 from .controllers.media import MediaController
 from .error import (
@@ -105,10 +110,6 @@ def _is_ssl_timeout(exc):
     return exc.message in ("The handshake operation timed out",
                            "The write operation timed out",
                            "The read operation timed out")
-
-
-NetworkAddress = namedtuple('NetworkAddress',
-                            ['address', 'port'])
 
 
 ConnectionStatus = namedtuple('ConnectionStatus',

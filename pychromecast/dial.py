@@ -29,6 +29,10 @@ CAST_TYPES = {
 }
 
 
+NetworkAddress = namedtuple('NetworkAddress',
+                            ['address', 'port'])
+
+
 def reboot(host):
     """ Reboots the chromecast. """
     CC_SESSION.post(FORMAT_BASE_URL.format(host) + "/setup/reboot",
