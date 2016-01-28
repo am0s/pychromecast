@@ -268,6 +268,7 @@ class SocketClient(threading.Thread):
     def disconnect(self):
         """ Disconnect socket connection to Chromecast device """
         self.stop.set()
+        self.socket.shutdown(socket.SHUT_RDWR)
 
     def register_handler(self, handler):
         """ Register a new namespace handler. """
