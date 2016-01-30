@@ -3,8 +3,9 @@ PyChromecast: remote control your Chromecast
 """
 from __future__ import print_function
 
-# pylint: disable=wildcard-import
-from .error import *  # noqa
+from .error import (
+    MultipleChromecastsFoundError,
+    NoChromecastFoundError)
 # pylint: disable=wildcard-import
 from .config import *  # noqa
 from .device import Chromecast, IDLE_APP_ID, IGNORE_CEC, DEFAULT_PORT
@@ -80,7 +81,7 @@ def get_chromecasts(tries=None, retry_wait=None, timeout=None,
     # logger = logging.getLogger(__name__)
 
     cc_list = _get_all_chromecasts(
-            tries, retry_wait, timeout, browser, discover_timeout, filters)
+        tries, retry_wait, timeout, browser, discover_timeout, filters)
 
     return cc_list
 
@@ -111,6 +112,7 @@ def get_chromecasts_as_dict(tries=None, retry_wait=None, timeout=None,
                 **filters)}
 
 
+# pylint: disable=too-many-arguments
 def get_chromecast(strict=False, tries=None, retry_wait=None, timeout=None,
                    browser=None, discover_timeout=None, **filters):
     """

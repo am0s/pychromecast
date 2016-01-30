@@ -1,10 +1,14 @@
 """Discovers Chromecasts on the network using mDNS/zeroconf."""
 import logging
-import sys
 import time
 from abc import abstractmethod
 from collections import namedtuple
 from uuid import UUID
+# Python 3 has renamed Queue to queue, support both options
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 import six
 from zeroconf import ServiceBrowser, Zeroconf
@@ -15,11 +19,6 @@ from .dial import (
     NetworkAddress,
 )
 from .device import Chromecast, DEFAULT_PORT
-
-if sys.version_info >= (3, 0):
-    import queue
-else:
-    import Queue as queue
 
 
 # The minimum block time allowed for the queue
@@ -57,7 +56,7 @@ def discover_chromecasts(max_devices=None, discover_timeout=None,
     :rtype: list[Chromecast]
     """
     status_filter = FilteredDeviceQueue(
-            max_devices=max_devices, filters=filters)
+        max_devices=max_devices, filters=filters)
     cleanup = False
     if not browser:
         browser = CastBrowser(**kwargs)
@@ -70,12 +69,13 @@ def discover_chromecasts(max_devices=None, discover_timeout=None,
 
     try:
         return browser.discover(
-                status_filter, timeout=discover_timeout, connect=connect)
+            status_filter, timeout=discover_timeout, connect=connect)
     finally:
         if cleanup:
             browser.stop()
 
 
+# pylint: disable=too-few-public-methods
 class ListenerBase(object):
     """
     Base class for Chromecast listeners. The listener can be registered
@@ -93,15 +93,16 @@ class ListenerBase(object):
 
 
 class EnqueueListener(ListenerBase):
-    def __init__(self, device_queue, connect=False):
-        """
-        Listener which sends all discovered devices to a chosen queue.
+    """
+    Listener which sends all discovered devices to a chosen queue.
 
-        :type device_queue: FilteredDeviceQueueBase
-        :param connect: If True then it will connect to the device before
-            passing it to the queue handler.
-        :type connect: bool
-        """
+    :type device_queue: FilteredDeviceQueueBase
+    :param connect: If True then it will connect to the device before
+        passing it to the queue handler.
+    :type connect: bool
+    """
+
+    def __init__(self, device_queue, connect=False):
         self.queue = device_queue
         self.connect = connect
 
@@ -117,6 +118,14 @@ class EnqueueListener(ListenerBase):
 
 
 class FilteredDeviceQueueBase(object):
+    """
+    Base class for a queue of Chromecast devices with filtering support.
+    The queue accepts discovered devices from another thread by using
+    enqueue_device(). The main thread should call process() which will
+    block until the filter criteria are met or it times out.
+    """
+
+    # pylint: disable=unused-argument
     def __init__(self, **kwargs):
         self.queue = queue.Queue()
         self._devices = []
@@ -173,6 +182,7 @@ class FilteredDeviceQueueBase(object):
                 break
         return self._devices
 
+    # pylint: disable=unused-argument,no-self-use
     def filter(self, cast_device):
         """
         Filters the cast device by checking the filter critera and returns
@@ -183,6 +193,7 @@ class FilteredDeviceQueueBase(object):
         """
         return True
 
+    # pylint: disable=no-self-use
     def is_full(self):
         """
         Checks if the queue is full, returns True if full, False otherwise.
@@ -192,6 +203,7 @@ class FilteredDeviceQueueBase(object):
         """
         return False
 
+    # pylint: disable=no-self-use
     def is_connection_required(self):
         """
         Returns True if the queue requires a connection with the Chromecast
@@ -202,12 +214,42 @@ class FilteredDeviceQueueBase(object):
         return False
 
 
+# pylint: disable=too-many-instance-attributes
 class FilteredDeviceQueue(FilteredDeviceQueueBase):
+    """
+    A queue of Chromecast devices with an optional filter and limit on
+    how many devices to find.
+    The filters refer to the attributes in the DeviceStatus or Status
+    classes.
+    The following filter attributes will match a unique device and will
+    stop the process once found:
+    - ip - The ip of the host, can be an ip string, tuple(ip, port) or
+           a NetworkAddress instance. If no port is specified it assumes
+           the default port.
+    - friendly_name - The unique human-friendly name of the device, e.g.
+                      "Living room" or "TV".
+    - uuid - A unique UUID of the device, this uniquely identifies the
+             device without knowing the friendly name.
+
+    The following filter attributes may match more than one device and
+    will not stop the process until the timeout occurs, or max devices
+    is met.
+    - model_name - The model name for the device.
+    - cast_type - The type of Chromecast, 'chromecast', 'audio' or 'group'.
+    - app_id - The unique ID of the app running.
+    - display_name - The name reported by the running app.
+    - session_id - The unique session ID for a given chromecast.
+
+    See socketclient.CastStatus and dial.DeviceStatus for more fields to
+    use.
+
+    :param max_devices: Limit the queue to this many devices.
+    :type max_devices: int
+    :param filters: The filters to use when receiving devices.
+    :type filters: dict
+    """
+
     def __init__(self, max_devices=None, filters=None, **kwargs):
-        """
-        :type max_devices: int
-        :type filters: dict
-        """
         self.max_devices = max_devices
         self.extra_filters = {}
         self.unique_match = False
@@ -227,12 +269,14 @@ class FilteredDeviceQueue(FilteredDeviceQueueBase):
                 if not isinstance(uuid, UUID):
                     uuid = UUID(uuid)
                 self.uuid = uuid
-            ip = filters.pop('ip', None)
-            if ip:
-                if isinstance(ip, tuple):
-                    host = NetworkAddress(ip[0], ip[1])
+            address = filters.pop('ip', None)
+            if address:
+                if isinstance(address, tuple):
+                    host = NetworkAddress(address[0], address[1])
+                elif isinstance(address, NetworkAddress):
+                    host = address
                 else:
-                    host = NetworkAddress(ip, DEFAULT_PORT)
+                    host = NetworkAddress(address, DEFAULT_PORT)
                 self.host = host
 
             # These filters can match more than one device
@@ -256,6 +300,7 @@ class FilteredDeviceQueue(FilteredDeviceQueueBase):
 
         super(FilteredDeviceQueue, self).__init__(**kwargs)
 
+    # pylint: disable=too-many-return-statements
     def filter(self, cast_device):
         """
         :type cast_device: Chromecast
@@ -299,6 +344,10 @@ class FilteredDeviceQueue(FilteredDeviceQueueBase):
 
 
 class ZeroconfBrowser(ServiceBrowser):
+    """
+    Wrapper around the Zeroconf ServiceBrowser, used to catch certain
+    exceptions which occurs during shutdown, these errors should be ignored.
+    """
     def __init__(self, *args, **kwargs):
         self.logger = logging.getLogger(__name__)
         super(ZeroconfBrowser, self).__init__(*args, **kwargs)
@@ -316,14 +365,33 @@ class ZeroconfBrowser(ServiceBrowser):
 
 
 class CastBrowser(object):
+    """
+    Is responsible for discovering Chromecast devices on the network and
+    manage them.
+    Listeners may register themselves to get reported and added or removed
+    devices.
+
+    To discover devices asynchronously the client should create the browser,
+    register any listener(s) and then call start() to initiate
+    a new thread which discovers devices.
+
+    For synchronous usage create the browser and call the discover() method
+    with a filter instance. This will then block the main thread until the
+    filter criteria has been fulfilled or it times out.
+
+    When the browser is no longer to be used the stop() method may be called.
+
+    :param tries: Default 'tries' value for new Chromecast devices.
+    :type tries: int
+    :param timeout: Default 'timeout' value for new Chromecast devices.
+    :type timeout: float
+    :param retry_wait: Default 'retry_wait' value for new Chromecast devices.
+    :type retry_wait: float
+    """
+
     browser = None
 
     def __init__(self, **kwargs):
-        """
-        :type tries: int
-        :type timeout: float
-        :type retry_wait: float
-        """
         self.tries = kwargs.pop('tries', None)
         self.timeout = kwargs.pop('timeout', None)
         self.retry_wait = kwargs.pop('retry_wait', None)
@@ -380,7 +448,7 @@ class CastBrowser(object):
 
         # Create a listener which will pass new devices to the filter
         listener = EnqueueListener(
-                device_queue, connect=device_queue.is_connection_required())
+            device_queue, connect=device_queue.is_connection_required())
         self.register_listener(listener)
 
         # Add all devices which have already been discovered
@@ -465,8 +533,12 @@ class CastBrowser(object):
             name, host, service.port, uuid, model_name, friendly_name)
         self.add_cast_device(name, cast_device)
 
+    # pylint: disable=too-many-arguments
     def create_cast_device(self, name, host, port, uuid, model_name,
                            friendly_name):
+        """
+        Creates a new Chromecast device from the parameters and returns it.
+        """
         cast_type = CAST_TYPES.get(model_name.lower(),
                                    CAST_TYPE_CHROMECAST)
         device = DeviceStatus(
@@ -494,15 +566,41 @@ class CastBrowser(object):
                 break
 
     def add_cast_device(self, name, cast_device):
+        """
+        Adds the cast device to the browser and register it under a unique
+        name. The device will then be managed by the browser for its lifetime.
+        Use the method release_cast_device to stop management of the device.
+
+        The new device will also be reported to any listeners.
+
+        :param name: mDNS name for the device.
+        :param cast_device: The Chromecast device.
+        :type cast_device: Chromecast
+        """
         self.services[name] = cast_device
         self.report_device_status(DiscoveryStatus(cast_device, 'added'))
 
     def remove_cast_device(self, name):
+        """
+        Call whenever a cast devices is removed or no longer available.
+        The device will then be released from this browser.
+
+        The device will then be reported to any listeners to let them know
+        that it has been removed.
+
+        :param name: mDNS name for the device.
+        """
         if name in self.services:
             cast_device = self.services.pop(name)
             self.report_device_status(DiscoveryStatus(cast_device, 'removed'))
 
     def report_device_status(self, status):
+        """
+        Reports the discovery status to all listeners.
+
+        :param status: The status value
+        :type status: DiscoveryStatus
+        """
         for listener in self.listeners:
             try:
                 listener.new_device_status(status)
@@ -510,7 +608,20 @@ class CastBrowser(object):
                 pass
 
     def register_listener(self, listener):
+        """
+        Registers a new discovery listener. The listener will be notified
+        whenever there is a new device available, or a device is removed.
+
+        :param listener: The listener instance
+        :type listener: ListenerBase
+        """
         self.listeners.append(listener)
 
     def unregister_listener(self, listener):
+        """
+        Unregisters an existing discovery listener.
+
+        :param listener: The listener instance
+        :type listener: ListenerBase
+        """
         self.listeners.remove(listener)

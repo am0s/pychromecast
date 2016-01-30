@@ -1,3 +1,6 @@
+"""
+Provides the main Chromecast device class which the clients interact with.
+"""
 import sys
 import logging
 import fnmatch
@@ -89,12 +92,15 @@ class Chromecast(object):
         self._delayed_launch_error_listeners = []
         self._delayed_connection_listeners = []
 
+        # pylint: disable=missing-docstring
         def set_volume_void(volume):
             return volume
 
+        # pylint: disable=missing-docstring,unused-argument
         def set_volume_muted_void(muted):
             pass
 
+        # pylint: disable=missing-docstring,unused-argument
         def play_media_void(*args, **kwargs):
             pass
 
@@ -112,19 +118,28 @@ class Chromecast(object):
         if connect:
             self.connect()
 
+    # pylint: disable=invalid-name
     def _delayed_register_handler(self, handler):
         self._delayed_handlers.append(handler)
 
+    # pylint: disable=invalid-name
     def _delayed_register_status_listener(self, listener):
         self._delayed_status_listeners.append(listener)
 
+    # pylint: disable=invalid-name
     def _delayed_register_launch_error_listener(self, listener):
         self._delayed_launch_error_listeners.append(listener)
 
+    # pylint: disable=invalid-name
     def _delayed_register_connection_listener(self, listener):
         self._delayed_connection_listeners.append(listener)
 
     def connect(self):
+        """
+        Connects to the Chromecast device.
+        If it is already connected it does nothing.
+        :return:
+        """
         if self.is_started:
             return
 
