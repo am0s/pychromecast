@@ -360,7 +360,6 @@ class CastBrowser(object):
             self.browser.join()
 
         for cast in self.devices:
-            print(u"Disconnecting {} ({})".format(cast.name, cast.uuid))
             cast.disconnect()
 
     def discover(self, device_queue=None, timeout=DISCOVER_TIMEOUT,
