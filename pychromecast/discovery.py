@@ -54,6 +54,12 @@ def discover_chromecasts(max_devices=None, discover_timeout=None,
             before returning.
     :type connect: bool
     :rtype: list[Chromecast]
+    :param tries: Default 'tries' value for new Chromecast devices.
+    :type tries: int
+    :param timeout: Default 'timeout' value for new Chromecast devices.
+    :type timeout: float
+    :param retry_wait: Default 'retry_wait' value for new Chromecast devices.
+    :type retry_wait: float
     """
     status_filter = FilteredDeviceQueue(
         max_devices=max_devices, filters=filters)

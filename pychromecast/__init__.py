@@ -28,20 +28,6 @@ __version_info__ = ('0', '7')
 __version__ = '.'.join(__version_info__)
 
 
-def _get_all_chromecasts(tries=None, retry_wait=None, timeout=None,
-                         browser=None, discover_timeout=None,
-                         filters=None):
-    """
-    Returns a list of all chromecasts on the network as PyChromecast
-    objects.
-    """
-    return discover_chromecasts(
-        tries=tries, retry_wait=retry_wait, timeout=timeout,
-        browser=browser, discover_timeout=discover_timeout,
-        filters=filters,
-    )
-
-
 def get_chromecasts(tries=None, retry_wait=None, timeout=None,
                     browser=None, discover_timeout=None, **filters):
     """
@@ -80,8 +66,9 @@ def get_chromecasts(tries=None, retry_wait=None, timeout=None,
     """
     # logger = logging.getLogger(__name__)
 
-    cc_list = _get_all_chromecasts(
-        tries, retry_wait, timeout, browser, discover_timeout, filters)
+    cc_list = discover_chromecasts(
+        tries=tries, retry_wait=retry_wait, timeout=timeout, browser=browser,
+        discover_timeout=discover_timeout, filters=filters)
 
     return cc_list
 
@@ -146,7 +133,10 @@ def get_chromecast(strict=False, tries=None, retry_wait=None, timeout=None,
             browser=browser, discover_timeout=discover_timeout,
             **filters)
     else:
-        results = _get_all_chromecasts(tries, retry_wait)
+        results = discover_chromecasts(
+            tries=tries, retry_wait=retry_wait, timeout=timeout,
+            browser=browser, discover_timeout=discover_timeout,
+            filters=filters)
 
     if len(results) > 1:
         if strict:
