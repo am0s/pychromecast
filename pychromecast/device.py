@@ -3,10 +3,7 @@ import logging
 import fnmatch
 import threading
 
-# pylint: disable=wildcard-import
-#from .error import *  # noqa
 from .error import ChromecastConnectionError, NotConnected
-
 from . import socket_client
 from .dial import get_device_status, reboot, DeviceStatus
 

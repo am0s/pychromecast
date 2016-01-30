@@ -3,25 +3,25 @@ PyChromecast: remote control your Chromecast
 """
 from __future__ import print_function
 
-import logging
-
 # pylint: disable=wildcard-import
 from .error import *  # noqa
 # pylint: disable=wildcard-import
 from .config import *  # noqa
-from .device import Chromecast, IDLE_APP_ID, IGNORE_CEC
+from .device import Chromecast, IDLE_APP_ID, IGNORE_CEC, DEFAULT_PORT
 from .discovery import discover_chromecasts
 from .dial import (
-    DeviceStatus,
-    CAST_TYPES,
     CAST_TYPE_CHROMECAST,
+    CAST_TYPE_AUDIO,
+    CAST_TYPE_GROUP,
 )
 from .controllers.media import STREAM_TYPE_BUFFERED  # noqa
 
 __all__ = (
     '__version__', '__version_info__',
     'get_chromecasts', 'get_chromecasts_as_dict', 'get_chromecast',
-    'Chromecast'
+    'Chromecast',
+    'IDLE_APP_ID', 'IGNORE_CEC', 'DEFAULT_PORT',
+    'CAST_TYPE_CHROMECAST', 'CAST_TYPE_AUDIO', 'CAST_TYPE_GROUP'
 )
 __version_info__ = ('0', '7')
 __version__ = '.'.join(__version_info__)
@@ -52,7 +52,7 @@ def get_chromecasts(tries=None, retry_wait=None, timeout=None,
     May return an empty list if no chromecasts were found matching
     the filter criteria
 
-    Filters include DeviceStatus items:
+    Filters include dial.DeviceStatus items:
         friendly_name, model_name, manufacturer, api_version
     Or AppStatus items:
         app_id, description, state, service_url, service_protocols (list)
