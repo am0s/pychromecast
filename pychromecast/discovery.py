@@ -238,8 +238,6 @@ class FilteredDeviceQueue(FilteredDeviceQueueBase):
             # These filters can match more than one device
             self.model_name = filters.pop('model_name', None)
 
-            # TODO: Add filters for Cast fields
-            # app_id, description, state, service_url, service_protocols (list)
             self.extra_filters = filters
 
         self.unique_match = bool(
