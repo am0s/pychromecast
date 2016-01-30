@@ -8,6 +8,7 @@ from uuid import UUID
 try:
     import queue
 except ImportError:
+    # pylint: disable=import-error
     import Queue as queue
 
 import six
